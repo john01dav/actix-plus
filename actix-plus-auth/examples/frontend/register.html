@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script>
+            async function register(){
+                if(document.getElementById('password').value !== document.getElementById('confirm-password').value){
+                    alert("Passwords don't match.");
+                    return;
+                }
+
+                let response = await fetch('/register', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: document.getElementById('email').value,
+                        username: document.getElementById('username').value,
+                        password: document.getElementById('password').value,
+                    })
+                });
+                if(response.ok){
+                    let json = await response.json();
+                    if(json.succeeded){
+                        window.location.href = '/login.html';
+                    }else{
+                        alert(json.message);
+                    }
+                }else{
+                    alert(`${response.status} ${response.statusText}`); //better UI is probably warranted in a real app
+                }
+
+                return false;
+            }
+        </script>
+    </head>
+<body>
+    <p>Email: <input type="text" id="email"></p>
+    <p>Username: <input type="text" id="username"></p>
+    <p>Password: <input type="password" id="password"></p>
+    <p>Confirm Password: <input type="password" id="confirm-password"></p>
+    <button onclick="register()">Register</button>
+</body>
+</html>
