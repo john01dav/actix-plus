@@ -1,0 +1,9 @@
+[package]
+name = "actix-plus-utils"
+version = "0.1.0"
+authors = ["john01dav <john01dav@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]

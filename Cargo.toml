@@ -1,5 +1,7 @@
 [workspace]
 
 members = [
-	"actix-plus-error"
+	"actix-plus-error",
+	"actix-plus-auth",
+	"actix-plus-utils"
 ]
