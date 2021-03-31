@@ -1,5 +1,5 @@
+use actix_plus_static_files::{build_hashmap_from_included_dir, include_dir, Dir, ResourceFiles};
 use actix_web::{App, HttpServer};
-use actix_web_static_files::{build_hashmap_from_included_dir, include_dir, Dir, ResourceFiles};
 
 const DIR: Dir = include_dir!("./examples/static");
 
