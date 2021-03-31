@@ -38,7 +38,7 @@ Include static files in Actix Web application:
 
 ```rust#no_run
 use actix_web::{App, HttpServer};
-use actix_web_static_files::{build_hashmap_from_included_dir, ResourceFiles, Dir, include_dir};
+use actix_plus_static_files::{build_hashmap_from_included_dir, ResourceFiles, Dir, include_dir};
 
 const DIR: Dir = include_dir!("./examples/static");
 
@@ -89,7 +89,7 @@ If you are using Angular as frontend, you may want to resolve all not found call
 
 ```rust#no_run
 use actix_web::{App, HttpServer};
-use actix_web_static_files::{build_hashmap_from_included_dir, ResourceFiles, Dir, include_dir};
+use actix_plus_static_files::{build_hashmap_from_included_dir, ResourceFiles, Dir, include_dir};
 
 const DIR: Dir = include_dir!("./examples/static");
 

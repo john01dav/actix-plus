@@ -33,13 +33,13 @@ pub struct Resource {
 /// fn main() {
 /// // serve root directory with default options:
 /// // - resolve index.html
-///     let files: HashMap<&'static str, actix_web_static_files::Resource> = HashMap::new();
+///     let files: HashMap<&'static str, actix_plus_static_files::Resource> = HashMap::new();
 ///     let app = App::new()
-///         .service(actix_web_static_files::ResourceFiles::new("/", files));
+///         .service(actix_plus_static_files::ResourceFiles::new("/", files));
 /// // or subpath with additional option to not resolve index.html
-///     let files: HashMap<&'static str, actix_web_static_files::Resource> = HashMap::new();
+///     let files: HashMap<&'static str, actix_plus_static_files::Resource> = HashMap::new();
 ///     let app = App::new()
-///         .service(actix_web_static_files::ResourceFiles::new("/imgs", files)
+///         .service(actix_plus_static_files::ResourceFiles::new("/imgs", files)
 ///             .do_not_resolve_defaults());
 /// }
 /// ```
