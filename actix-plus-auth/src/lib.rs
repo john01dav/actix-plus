@@ -5,6 +5,7 @@ use actix_web::http::StatusCode;
 use actix_web::{HttpMessage, HttpRequest};
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
+pub use async_trait::async_trait;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use once_cell::sync::Lazy;
 use rand::rngs::OsRng;
@@ -22,18 +23,22 @@ pub trait Account: Serialize + DeserializeOwned + Debug + 'static {
 
 ///A struct that implements this trait provides the functions that Actix+Auth needs to interact with your database (or flatfile, volatile storage in ram, whatever you want) to implement authentication. Although it is not strictly required to work at small scale, it is **strongly** recommended that the email of each account be able to be looked up quickly in a case-insensitive manner. With a SQL database, this can be accomplished by adding an index on the lowercase of the email. The email is also the primary key.
 ///**Note that when this struct is cloned it should refer to the same datastore. This struct is cloned like a database pool is in normal Actix.**
+#[async_trait]
 pub trait DataProvider: Clone {
     type AccountType: Account;
 
     ///Adds a new account to the database, then returns that account back. You may need to clone the account when implementing this function. If another account exists with this email, then the function should return some sort of error.
-    fn insert_account(
+    async fn insert_account(
         &self,
         account: Self::AccountType,
         password_hash: String,
     ) -> ResponseResult<Self::AccountType>;
 
     /// Fetches the account with the given email from the database, case-insensitively. Note that a lowercase email should be passed to this function, but the matching email as stored in the database may be in any case.
-    fn fetch_account(&self, email: &str) -> ResponseResult<Option<(Self::AccountType, String)>>;
+    async fn fetch_account(
+        &self,
+        email: &str,
+    ) -> ResponseResult<Option<(Self::AccountType, String)>>;
 }
 
 ///The non-error outcomes of registration. Error outcomes are used when a genuine error takes place — e.g. the database is not reachable (represented by the functions on your DataProvider implementation returning an error).
@@ -126,7 +131,7 @@ impl<DataProviderImpl: DataProvider> AuthenticationProvider<DataProviderImpl> {
     ///     )
     /// }
     /// ```
-    pub fn register(
+    pub async fn register(
         &self,
         account: DataProviderImpl::AccountType,
         password: &str,
@@ -139,7 +144,7 @@ impl<DataProviderImpl: DataProvider> AuthenticationProvider<DataProviderImpl> {
         }
 
         //check for existing account with same username
-        if let Some(_) = self.provider.fetch_account(&lowercase_email)? {
+        if let Some(_) = self.provider.fetch_account(&lowercase_email).await? {
             return Ok(RegistrationOutcome::EmailTaken);
         }
 
@@ -151,7 +156,7 @@ impl<DataProviderImpl: DataProvider> AuthenticationProvider<DataProviderImpl> {
             .to_string();
 
         //insert new account
-        let account = self.provider.insert_account(account, hash)?;
+        let account = self.provider.insert_account(account, hash).await?;
 
         return Ok(RegistrationOutcome::Successful(account));
     }
@@ -182,17 +187,20 @@ impl<DataProviderImpl: DataProvider> AuthenticationProvider<DataProviderImpl> {
     ///     })
     /// }
     /// ```
-    pub fn login(
+    pub async fn login(
         &self,
         email: &str,
         password: &str,
     ) -> ResponseResult<LoginOutcome<DataProviderImpl::AccountType>> {
         //get account & verify exists
-        let (account, hash_string) =
-            match self.provider.fetch_account(&email.to_ascii_lowercase())? {
-                Some(account) => account,
-                None => return Ok(LoginOutcome::InvalidEmailOrPassword),
-            };
+        let (account, hash_string) = match self
+            .provider
+            .fetch_account(&email.to_ascii_lowercase())
+            .await?
+        {
+            Some(account) => account,
+            None => return Ok(LoginOutcome::InvalidEmailOrPassword),
+        };
 
         //check password
         let argon2 = Argon2::default();

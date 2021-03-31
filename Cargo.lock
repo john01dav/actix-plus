@@ -104,6 +104,7 @@ dependencies = [
  "actix-plus-utils",
  "actix-web",
  "argon2",
+ "async-trait",
  "jsonwebtoken",
  "once_cell",
  "openssl",

@@ -22,7 +22,7 @@ struct LoginResponseDto {
 
 #[post("/login")]
 async fn login(auth: Data<ExampleAuthProvider>, dto: Json<LoginDto>) -> Response {
-    Ok(match auth.login(&dto.email, &dto.password)? {
+    Ok(match auth.login(&dto.email, &dto.password).await? {
         LoginOutcome::Successful(account, cookie) => {
             HttpResponse::Ok()
                 .cookie(CookieBuilder::new("username", account.username).finish()) //this is how you make information available to your frontend, note that anything in your account type is visible to users as it is encoded as a JWT!!!!!
@@ -79,13 +79,16 @@ struct RegistrationResponseDto {
 async fn register(auth: Data<ExampleAuthProvider>, dto: Json<RegistrationDto>) -> Response {
     let dto = dto.into_inner();
     Ok(
-        match auth.register(
-            ExampleAccount {
-                username: dto.username,
-                email: dto.email,
-            },
-            &dto.password,
-        )? {
+        match auth
+            .register(
+                ExampleAccount {
+                    username: dto.username,
+                    email: dto.email,
+                },
+                &dto.password,
+            )
+            .await?
+        {
             RegistrationOutcome::Successful(_account) => {
                 HttpResponse::Ok()
                     .json(RegistrationResponseDto {
@@ -164,7 +167,7 @@ async fn main() {
 
 //in a real project you would probably want this module to be its own file
 mod auth {
-    use actix_plus_auth::{Account, AuthenticationProvider, DataProvider};
+    use actix_plus_auth::{async_trait, Account, AuthenticationProvider, DataProvider};
     use actix_plus_error::ResponseResult;
     use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
@@ -199,10 +202,11 @@ mod auth {
         }
     }
 
+    #[async_trait]
     impl DataProvider for InMemoryDataProvider {
         type AccountType = ExampleAccount; //this is where you tell the library about your account type
 
-        fn insert_account(
+        async fn insert_account(
             &self,
             account: Self::AccountType,
             password_hash: String,
@@ -213,7 +217,7 @@ mod auth {
             Ok(cloned_account)
         }
 
-        fn fetch_account(
+        async fn fetch_account(
             &self,
             email: &str,
         ) -> ResponseResult<Option<(Self::AccountType, String)>> {
