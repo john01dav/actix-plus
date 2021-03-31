@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script>
+            async function logout(){
+                let response = await fetch('/logout', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                });
+                if(response.ok){
+                    window.location.href = '/login.html';
+                }else{
+                    alert(`${response.status} ${response.statusText}`); //better UI is probably warranted in a real app
+                }
+
+                return false;
+            }
+        </script>
+    </head>
+<body>
+    <button onclick="logout()">Logout</button>
+</body>
+</html>

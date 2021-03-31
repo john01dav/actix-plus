@@ -47,12 +47,16 @@ async fn login(auth: Data<ExampleAuthProvider>, dto: Json<LoginDto>) -> Response
 #[post("/logout")]
 async fn logout(request: HttpRequest) -> Response {
     let mut response = HttpResponse::Ok();
-    if let Some(session_cookie) = request.cookie("actix-plus-auth-token") {
+    if let Some(mut session_cookie) = request.cookie("actix-plus-auth-token") {
         //TODO: no magic strings
+        session_cookie.set_path("/");
+        session_cookie.set_secure(true);
         response.del_cookie(&session_cookie);
     }
-    if let Some(username_cookie) = request.cookie("username") {
+    if let Some(mut username_cookie) = request.cookie("username") {
         //TODO: no magic strings
+        username_cookie.set_path("/");
+        username_cookie.set_secure(true);
         response.del_cookie(&username_cookie);
     }
     Ok(response.await?)
@@ -111,8 +115,11 @@ async fn register(auth: Data<ExampleAuthProvider>, dto: Json<RegistrationDto>) -
 }
 
 #[get("/private_page")]
-async fn private_page() -> Response {
-    Ok(HttpResponse::Ok().await?)
+async fn private_page(request: HttpRequest, auth: Data<ExampleAuthProvider>) -> Response {
+    let account = auth.current_user(&request)?;
+    Ok(HttpResponse::Ok()
+        .body(format!("Hello {}", account.username))
+        .await?)
 }
 
 const FRONTEND: Dir = include_dir!("examples/frontend");
