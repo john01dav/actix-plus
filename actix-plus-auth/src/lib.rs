@@ -13,29 +13,44 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
+///A struct that implements this trait represents the data that is stored with each account in the authentication system. The only mandatory data to st ore in an account is the email that the account is associated with. The password should not be stored here. Your account object's data and the password, taken together, are usually one row in a SQL database (although other database types can be used as this library does not interact with the database), where the email is the primary key.
+///**Note that this data is viewable to the user as it is stored in an unencrypted (but signed) json web token!**
 pub trait Account: Serialize + DeserializeOwned + Debug + 'static {
+    ///Gets the email associated with this account.
     fn email(&self) -> &str;
 }
 
+///A struct that implements this trait provides the functions that Actix+Auth needs to interact with your database (or flatfile, volatile storage in ram, whatever you want) to implement authentication. Although it is not strictly required to work at small scale, it is **strongly** recommended that the email of each account be able to be looked up quickly in a case-insensitive manner. With a SQL database, this can be accomplished by adding an index on the lowercase of the email. The email is also the primary key.
+///**Note that when this struct is cloned it should refer to the same datastore. This struct is cloned like a database pool is in normal Actix.**
 pub trait DataProvider: Clone {
     type AccountType: Account;
 
+    ///Adds a new account to the database, then returns that account back. You may need to clone the account when implementing this function. If another account exists with this email, then the function should return some sort of error.
     fn insert_account(
         &self,
         account: Self::AccountType,
         password_hash: String,
     ) -> ResponseResult<Self::AccountType>;
+
+    /// Fetches the account with the given email from the database, case-insensitively. Note that a lowercase email should be passed to this function, but the matching email as stored in the database may be in any case.
     fn fetch_account(&self, email: &str) -> ResponseResult<Option<(Self::AccountType, String)>>;
 }
 
+///The non-error outcomes of registration. Error outcomes are used when a genuine error takes place — e.g. the database is not reachable (represented by the functions on your DataProvider implementation returning an error).
 pub enum RegistrationOutcome<AccountType: Account> {
+    ///The account is now in the database, and is given here.
     Successful(AccountType),
+    ///The provided email is not a valid email
     InvalidEmail,
+    //The provided email is already tkane
     EmailTaken,
 }
 
+///The non-error outcomes of logging in. Error outcomes are used when a genuine error takes place — e.g. the database is not reachable (represented by the functions on your DataProvider implementation returning an error).
 pub enum LoginOutcome<AccountType> {
+    ///The credentials were correct, so the account  and a cookie that should be set in the resposne to the login route are provided.
     Successful(AccountType, Cookie<'static>),
+    //The provided credentials do not correspond to a valid account.
     InvalidEmailOrPassword,
 }
 
@@ -52,6 +67,7 @@ struct JsonWebTokenClaims<T> {
     account: T,
 }
 
+///A clone of this struct is provided to each App instance in Actix as Data, thus providing access to the authentication system in each route.
 #[derive(Clone)]
 pub struct AuthenticationProvider<DataProviderImpl: DataProvider> {
     provider: DataProviderImpl,
@@ -60,6 +76,7 @@ pub struct AuthenticationProvider<DataProviderImpl: DataProvider> {
 }
 
 impl<DataProviderImpl: DataProvider> AuthenticationProvider<DataProviderImpl> {
+    ///Creates a new AuthenticationProvider with the provided jwt_secret and data provider. The jwt secret is used to sign and verify the json web tokens, so it should be secret, long enough to be secure, and persistent over a period of days. Changing this token will invalidate all current sessions, but they may not be cleanly logged out if you set your own cookies in addition to the token.
     pub fn new(provider: DataProviderImpl, jwt_secret: Vec<u8>) -> Self {
         Self {
             provider,
@@ -68,6 +85,47 @@ impl<DataProviderImpl: DataProvider> AuthenticationProvider<DataProviderImpl> {
         }
     }
 
+    ///Registers the provided account with the provided password. See the documentation on RegistrationOutcome for details on what to do next.
+    /// ```rust,ignore
+    /// #[post("/register")]
+    /// async fn register(auth: Data<ExampleAuthProvider>, dto: Json<RegistrationDto>) -> Response {
+    ///     let dto = dto.into_inner();
+    ///     Ok(
+    ///         match auth.register(
+    ///             ExampleAccount {
+    ///                 username: dto.username,
+    ///                 email: dto.email,
+    ///             },
+    ///             &dto.password,
+    ///         )? {
+    ///             RegistrationOutcome::Successful(_account) => {
+    ///                 HttpResponse::Ok()
+    ///                     .json(RegistrationResponseDto {
+    ///                         succeeded: true,
+    ///                         message: None,
+    ///                     })
+    ///                     .await?
+    ///             }
+    ///             RegistrationOutcome::InvalidEmail => {
+    ///                 HttpResponse::Ok()
+    ///                     .json(RegistrationResponseDto {
+    ///                         succeeded: false,
+    ///                         message: Some("Invalid Email".into()),
+    ///                     })
+    ///                     .await?
+    ///             }
+    ///             RegistrationOutcome::EmailTaken => {
+    ///                 HttpResponse::Ok()
+    ///                     .json(RegistrationResponseDto {
+    ///                         succeeded: false,
+    ///                         message: Some("Email is already taken".into()),
+    ///                     })
+    ///                     .await?
+    ///             }
+    ///         },
+    ///     )
+    /// }
+    /// ```
     pub fn register(
         &self,
         account: DataProviderImpl::AccountType,
@@ -98,6 +156,32 @@ impl<DataProviderImpl: DataProvider> AuthenticationProvider<DataProviderImpl> {
         return Ok(RegistrationOutcome::Successful(account));
     }
 
+    ///Attempts to login to the specified account. See the documentation on LoginOutcome for details on what to do next.
+    /// ```rust,ignore
+    /// #[post("/login")]
+    /// async fn login(auth: Data<ExampleAuthProvider>, dto: Json<LoginDto>) -> Response {
+    ///     Ok(match auth.login(&dto.email, &dto.password)? {
+    ///         LoginOutcome::Successful(account, cookie) => {
+    ///             HttpResponse::Ok()
+    ///                 .cookie(CookieBuilder::new("username", account.username).finish()) //this is how you make information available to your frontend, note that anything in your account type is visible to users as it is encoded as a JWT!!!!!
+    ///                 .cookie(cookie)
+    ///                 .json(LoginResponseDto {
+    ///                     succeeded: true,
+    ///                     message: None,
+    ///                 })
+    ///                 .await?
+    ///         }
+    ///         LoginOutcome::InvalidEmailOrPassword => {
+    ///             HttpResponse::Ok()
+    ///                 .json(LoginResponseDto {
+    ///                     succeeded: false,
+    ///                     message: Some("Invalid username or password".into()),
+    ///                 })
+    ///                 .await?
+    ///         }
+    ///     })
+    /// }
+    /// ```
     pub fn login(
         &self,
         email: &str,
@@ -138,6 +222,16 @@ impl<DataProviderImpl: DataProvider> AuthenticationProvider<DataProviderImpl> {
         Ok(LoginOutcome::Successful(claims.account, cookie))
     }
 
+    ///Gets the current user if a valid session is present on the provided HTTP request, otherwise returns a ResponseResult that when propagated with the actix-plus-error crate causes Actix web to return 401 Not Authorized.
+    /// ```rust,ignore
+    /// #[get("/private_page")]
+    /// async fn private_page(request: HttpRequest, auth: Data<ExampleAuthProvider>) -> Response {
+    ///     let account = auth.current_user(&request)?;
+    ///     Ok(HttpResponse::Ok()
+    ///         .body(format!("Hello {}", account.username))
+    ///         .await?)
+    /// }
+    /// ```
     pub fn current_user(
         &self,
         request: &HttpRequest,
