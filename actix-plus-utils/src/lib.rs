@@ -1,9 +1,8 @@
 use actix_plus_error::{ResponseError, ResponseResult};
 use actix_web::http::StatusCode;
 use rand::{thread_rng, Rng};
-use std::time::{SystemTime, UNIX_EPOCH, Duration};
+use std::time::{SystemTime, UNIX_EPOCH};
 use unic_ucd_category::GeneralCategory;
-use std::thread::sleep;
 
 /// Returns the current unix time in seconds. This is useful both for when working with external APIs or libraries that expect a UNIX time, and for cleanly keeping track of time in one's own code.
 pub fn current_unix_time_secs() -> u64 {
@@ -14,11 +13,14 @@ pub fn current_unix_time_secs() -> u64 {
 }
 
 #[test]
-fn test_unix_time_increasing_at_proper_rate(){
+fn test_unix_time_increasing_at_proper_rate() {
+    use std::thread::sleep;
+    use std::time::Duration;
+
     let first_time = current_unix_time_secs();
     sleep(Duration::from_millis(1000));
     let second_time = current_unix_time_secs();
-    assert_eq!(first_time, second_time-1);
+    assert_eq!(first_time, second_time - 1);
 }
 
 /// Generates a secure random string. This is useful for token generation, such as email verification tokens. This string can contain any of the characters in the string "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890" with equal probability.
@@ -34,7 +36,7 @@ pub fn secure_random_string(len: usize) -> String {
 }
 
 #[test]
-fn test_secure_random_strings(){
+fn test_secure_random_strings() {
     let length = 1024;
     let string_1 = secure_random_string(length);
     let string_2 = secure_random_string(length);
@@ -71,14 +73,41 @@ pub fn validate_and_sanitize_string(string: &str, allow_new_line: bool) -> Respo
 }
 
 #[test]
-fn test_string_validation(){
-    assert_eq!(validate_and_sanitize_string("Test String", false).is_ok(), true);
-    assert_eq!(validate_and_sanitize_string("Test String", true).is_ok(), true);
-    assert_eq!(validate_and_sanitize_string("Test String\n\r", true).is_ok(), true);
-    assert_eq!(validate_and_sanitize_string("Test String\n\r", false).is_ok(), false);
-    assert_eq!(validate_and_sanitize_string("Test String\n", true).is_ok(), true);
-    assert_eq!(validate_and_sanitize_string("Test String\n", false).is_ok(), false);
-    assert_eq!(validate_and_sanitize_string("Test String\t", false).is_ok(), false);
-    assert_eq!(validate_and_sanitize_string("Test String\t", true).is_ok(), false);
-    assert_eq!(validate_and_sanitize_string("Test\n\rString", true).unwrap(), "Test\nString");
+fn test_string_validation() {
+    assert_eq!(
+        validate_and_sanitize_string("Test String", false).is_ok(),
+        true
+    );
+    assert_eq!(
+        validate_and_sanitize_string("Test String", true).is_ok(),
+        true
+    );
+    assert_eq!(
+        validate_and_sanitize_string("Test String\n\r", true).is_ok(),
+        true
+    );
+    assert_eq!(
+        validate_and_sanitize_string("Test String\n\r", false).is_ok(),
+        false
+    );
+    assert_eq!(
+        validate_and_sanitize_string("Test String\n", true).is_ok(),
+        true
+    );
+    assert_eq!(
+        validate_and_sanitize_string("Test String\n", false).is_ok(),
+        false
+    );
+    assert_eq!(
+        validate_and_sanitize_string("Test String\t", false).is_ok(),
+        false
+    );
+    assert_eq!(
+        validate_and_sanitize_string("Test String\t", true).is_ok(),
+        false
+    );
+    assert_eq!(
+        validate_and_sanitize_string("Test\n\rString", true).unwrap(),
+        "Test\nString"
+    );
 }
