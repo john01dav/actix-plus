@@ -47,13 +47,13 @@ pub enum RegistrationOutcome<AccountType: Account> {
     Successful(AccountType),
     ///The provided email is not a valid email
     InvalidEmail,
-    //The provided email is already tkane
+    //The provided email is already taken
     EmailTaken,
 }
 
 ///The non-error outcomes of logging in. Error outcomes are used when a genuine error takes place — e.g. the database is not reachable (represented by the functions on your DataProvider implementation returning an error).
 pub enum LoginOutcome<AccountType> {
-    ///The credentials were correct, so the account  and a cookie that should be set in the resposne to the login route are provided.
+    ///The credentials were correct, so the account  and a cookie that should be set in the response to the login route are provided.
     Successful(AccountType, Cookie<'static>),
     //The provided credentials do not correspond to a valid account.
     InvalidEmailOrPassword,

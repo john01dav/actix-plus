@@ -1,13 +1,18 @@
 [package]
 name = "actix-plus-static-files"
 version = "0.1.0"
-authors = ["Alexander Korolev <kilork@yandex.ru>", "David Johnson <john01dav@gmail.com>"]
+authors = ["David Johnson <john01dav@gmail.com>", "Alexander Korolev <kilork@yandex.ru>"]
 categories = ["network-programming",
     "asynchronous",
     "web-programming::http-server"]
 keywords = ["actix", "http", "web", "static"]
 license = "Unlicense OR MIT"
 edition = "2018"
+description = "A library that integrates with actix-web and include_dir to cleanly package, via a macro, static resources (e.g. a frontend) with an actix-web binary, thus serving these resources from RAM at runtime and simplifying deployment by containing the entire web application in a single executable binary; Fork of actix-web-static-files by Alexander Korolev"
+homepage = "https://github.com/john01dav/actix-plus"
+documentation = "https://docs.rs/actix-plus-static-files"
+repository = "https://github.com/john01dav/actix-plus"
+readme = "README.md"
 
 [dependencies]
 actix-web = { version = "3.0", default-features = false }

@@ -1,13 +1,19 @@
 [package]
 name = "actix-plus-auth"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["john01dav <john01dav@gmail.com>"]
 edition = "2018"
+license = "AGPL-3.0-or-later"
+description = "A library that integrates with actix-web to provide structure and implementation of authentication in an opinionated but still highly flexible way"
+homepage = "https://github.com/john01dav/actix-plus"
+documentation = "https://docs.rs/actix-plus-auth"
+repository = "https://github.com/john01dav/actix-plus"
+readme = "README.md"
 
 [dependencies]
 actix-web = "3.3.2"
-actix-plus-error = { path = "../actix-plus-error" }
-actix-plus-utils = { path = "../actix-plus-utils" }
+actix-plus-error = { path = "../actix-plus-error", version = "0.1.0" }
+actix-plus-utils = { path = "../actix-plus-utils", version = "0.1.0" }
 serde = "1.0.124"
 argon2 = {version = "0.1.4", features = ["std"]}
 rand = "0.8.3"
