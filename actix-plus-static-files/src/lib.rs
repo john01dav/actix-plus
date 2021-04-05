@@ -1,16 +1,17 @@
 #![doc(test(no_crate_inject))]
 /*!
-# actix-web static files as resources support
+# actix-plus-static-files
 
 ## Legal
 
 Dual-licensed under `MIT` or the [UNLICENSE](http://unlicense.org/).
 
-## Features
+## Overview
 
-- Embed static resources in executuble
+- Embed static resources in executable via convenient macro
 - Serve static resources as directory in `actix-web`
 - Support for angular-like routers
+- Fork of actix-web-static-files by Alexander Korolev
 
 ## Usage
 
@@ -28,15 +29,12 @@ Add to `Cargo.toml` dependency to `actix-web-static-files`:
 
 ```toml
 [dependencies]
-actix-web-static-files = "3.0"
-
-[build-dependencies]
-actix-web-static-files = "3.0"
+actix-plus-static-files = "0.1.0"
 ```
 
 Include static files in Actix Web application:
 
-```rust#no_run
+```rust
 use actix_web::{App, HttpServer};
 use actix_plus_static_files::{build_hashmap_from_included_dir, ResourceFiles, Dir, include_dir};
 
@@ -85,9 +83,9 @@ Hello, world
 
 ### Use-case #2: Angular-like applications
 
-If you are using Angular as frontend, you may want to resolve all not found calls via `index.html` of frontend app. To do this just call method `resolve_not_found_to_root` after resource creation.
+If you are using Angular (or any of a large variety of other such libraries, such as Svelte + Routify) as frontend, you may want to resolve all not found calls via `index.html` of frontend app. To do this just call method `resolve_not_found_to_root` after resource creation.
 
-```rust#no_run
+```rust
 use actix_web::{App, HttpServer};
 use actix_plus_static_files::{build_hashmap_from_included_dir, ResourceFiles, Dir, include_dir};
 

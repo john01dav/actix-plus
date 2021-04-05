@@ -6,7 +6,7 @@ Dual-licensed under `MIT` or the [UNLICENSE](http://unlicense.org/).
 
 ## Overview
 
-- Embed static resources in executuble via convenient macro
+- Embed static resources in executable via convenient macro
 - Serve static resources as directory in `actix-web`
 - Support for angular-like routers
 - Fork of actix-web-static-files by Alexander Korolev
