@@ -13,12 +13,14 @@ use std::{
     rc::Rc,
     task::{Context, Poll},
 };
+use mime_guess::Mime;
+use std::str::FromStr;
 
 /// Static files resource.
 pub struct Resource {
     pub data: &'static [u8],
     pub etag: String,
-    pub mime_type: String,
+    pub mime_type: Mime,
 }
 
 /// Static resource files handling
@@ -111,9 +113,8 @@ impl HttpServiceFactory for ResourceFiles {
     }
 }
 
-impl ServiceFactory for ResourceFiles {
+impl ServiceFactory<ServiceRequest> for ResourceFiles {
     type Config = ();
-    type Request = ServiceRequest;
     type Response = ServiceResponse;
     type Error = Error;
     type Service = ResourceFilesService;
@@ -144,17 +145,16 @@ impl Deref for ResourceFilesService {
     }
 }
 
-impl<'a> Service for ResourceFilesService {
-    type Request = ServiceRequest;
+impl<'a> Service<ServiceRequest> for ResourceFilesService {
     type Response = ServiceResponse;
     type Error = Error;
     type Future = Ready<Result<Self::Response, Self::Error>>;
 
-    fn poll_ready(&mut self, _: &mut Context) -> Poll<Result<(), Self::Error>> {
+    fn poll_ready(&self, _: &mut Context) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))
     }
 
-    fn call(&mut self, req: ServiceRequest) -> Self::Future {
+    fn call(&self, req: ServiceRequest) -> Self::Future {
         match *req.method() {
             Method::HEAD | Method::GET => (),
             _ => {
@@ -216,10 +216,10 @@ fn respond_to(req: &HttpRequest, item: Option<&Resource>) -> HttpResponse {
         let not_modified = !none_match(etag.as_ref(), req);
 
         let mut resp = HttpResponse::build(StatusCode::OK);
-        resp.set_header(header::CONTENT_TYPE, &file.mime_type[0..]);
+        resp.insert_header(header::ContentType(file.mime_type.clone()));
 
         if let Some(etag) = etag {
-            resp.set(header::ETag(etag));
+            resp.insert_header(header::ETag(etag));
         }
 
         if precondition_failed {

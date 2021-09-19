@@ -14,10 +14,7 @@ pub fn build_hashmap_from_included_dir(dir: &'static Dir) -> HashMap<&'static st
                 Resource {
                     data: file.contents(),
                     etag: format!("{:x}", md5::compute(file.contents())),
-                    mime_type: {
-                        let mime = MimeGuess::from_path(file.path()).first_or_octet_stream();
-                        format!("{}/{}", mime.type_(), mime.subtype())
-                    },
+                    mime_type: MimeGuess::from_path(file.path()).first_or_octet_stream(),
                 },
             );
         }
