@@ -168,7 +168,10 @@ impl<'a> Service<ServiceRequest> for ResourceFilesService {
             }
         }
 
-        let req_path = req.match_info().path();
+        let mut req_path = req.match_info().path();
+        if req_path.starts_with('/') {
+            req_path = &req_path[1..];
+        }
 
         let mut item = self.files.get(req_path);
 
