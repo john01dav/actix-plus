@@ -24,7 +24,6 @@ pub fn build_hashmap_from_included_dir(dir: &'static Dir) -> HashMap<&'static st
                 Bytes::from(vec)
             });
 
-
             map.insert(
                 file.path().to_str().expect("Failed to create path"),
                 Resource {
