@@ -15,11 +15,12 @@ use std::{
 };
 use mime_guess::Mime;
 use actix_web::http::header::ACCEPT_ENCODING;
+use actix_web::web::Bytes;
 
 /// Static files resource.
 pub struct Resource {
     pub data: &'static [u8],
-    pub data_gzip: Option<Vec<u8>>,
+    pub data_gzip: Option<Bytes>,
     pub etag: String,
     pub mime_type: Mime,
 }
