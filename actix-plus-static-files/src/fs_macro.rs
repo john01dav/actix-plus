@@ -15,7 +15,9 @@ pub fn build_hashmap_from_included_dir(dir: &'static Dir) -> HashMap<&'static st
         for file in dir.files() {
             let mime_type = MimeGuess::from_path(file.path()).first_or_octet_stream();
 
-            let data_gzip = (!mime_type.essence_str().starts_with("image/")).then(|| {
+            let no_gzip = file.contents().len() <= 1400 || mime_type.essence_str().starts_with("image/");
+
+            let data_gzip = (!no_gzip).then(|| {
                 let mut encoder = GzEncoder::new(Vec::new(), Compression::best());
                 encoder.write_all(file.contents()).unwrap();
                 let vec = encoder.finish().unwrap();
