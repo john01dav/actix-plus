@@ -14,11 +14,12 @@ use std::{
     task::{Context, Poll},
 };
 use mime_guess::Mime;
-use std::str::FromStr;
+use actix_web::http::header::ACCEPT_ENCODING;
 
 /// Static files resource.
 pub struct Resource {
     pub data: &'static [u8],
+    pub data_gzip: Option<Vec<u8>>,
     pub etag: String,
     pub mime_type: Mime,
 }
@@ -231,7 +232,12 @@ fn respond_to(req: &HttpRequest, item: Option<&Resource>) -> HttpResponse {
             return resp.status(StatusCode::NOT_MODIFIED).finish();
         }
 
-        resp.body(file.data)
+        if file.data_gzip.is_some() && req.headers().get(ACCEPT_ENCODING).and_then(|h| h.to_str().ok()).map(|s| s.contains("gzip")).unwrap_or(false) {
+            resp.insert_header(("content-encoding", "gzip"));
+            resp.body(file.data_gzip.as_ref().unwrap().clone())
+        } else {
+            resp.body(file.data)
+        }
     } else {
         HttpResponse::NotFound().body("Not found")
     }
