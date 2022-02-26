@@ -1,6 +1,6 @@
 [package]
 name = "actix-plus-static-files"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["David Johnson <john01dav@gmail.com>", "Alexander Korolev <kilork@yandex.ru>"]
 categories = ["network-programming",
     "asynchronous",
