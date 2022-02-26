@@ -1,4 +1,6 @@
 use actix_service::{Service, ServiceFactory};
+use actix_web::http::header::ACCEPT_ENCODING;
+use actix_web::web::Bytes;
 use actix_web::{
     dev::{AppService, HttpServiceFactory, ResourceDef, ServiceRequest, ServiceResponse},
     error::Error,
@@ -7,15 +9,13 @@ use actix_web::{
 };
 use derive_more::{Display, Error};
 use futures::future::{ok, FutureExt, LocalBoxFuture, Ready};
+use mime_guess::Mime;
 use std::{
     collections::HashMap,
     ops::Deref,
     rc::Rc,
     task::{Context, Poll},
 };
-use mime_guess::Mime;
-use actix_web::http::header::ACCEPT_ENCODING;
-use actix_web::web::Bytes;
 
 /// Static files resource.
 pub struct Resource {
@@ -163,14 +163,14 @@ impl<'a> Service<ServiceRequest> for ResourceFilesService {
                 return ok(ServiceResponse::new(
                     req.into_parts().0,
                     HttpResponse::MethodNotAllowed()
-                        .header(header::CONTENT_TYPE, "text/plain")
-                        .header(header::ALLOW, "GET, HEAD")
+                        .append_header((header::CONTENT_TYPE, "text/plain"))
+                        .append_header((header::ALLOW, "GET, HEAD"))
                         .body("This resource only supports GET and HEAD."),
                 ));
             }
         }
 
-        let mut req_path = req.match_info().path();
+        let mut req_path = req.match_info().unprocessed();
         if req_path.starts_with('/') {
             req_path = &req_path[1..];
         }
@@ -214,7 +214,7 @@ impl<'a> Service<ServiceRequest> for ResourceFilesService {
 
 fn respond_to(req: &HttpRequest, item: Option<&Resource>) -> HttpResponse {
     if let Some(file) = item {
-        let etag = Some(header::EntityTag::strong(file.etag.clone()));
+        let etag = Some(header::EntityTag::new_strong(file.etag.clone()));
 
         let precondition_failed = !any_match(etag.as_ref(), req);
 
@@ -233,7 +233,14 @@ fn respond_to(req: &HttpRequest, item: Option<&Resource>) -> HttpResponse {
             return resp.status(StatusCode::NOT_MODIFIED).finish();
         }
 
-        if file.data_gzip.is_some() && req.headers().get(ACCEPT_ENCODING).and_then(|h| h.to_str().ok()).map(|s| s.contains("gzip")).unwrap_or(false) {
+        if file.data_gzip.is_some()
+            && req
+                .headers()
+                .get(ACCEPT_ENCODING)
+                .and_then(|h| h.to_str().ok())
+                .map(|s| s.contains("gzip"))
+                .unwrap_or(false)
+        {
             resp.insert_header(("content-encoding", "gzip"));
             resp.body(file.data_gzip.as_ref().unwrap().clone())
         } else {
