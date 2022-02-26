@@ -1,4 +1,6 @@
 use actix_service::{Service, ServiceFactory};
+use actix_web::http::header::ACCEPT_ENCODING;
+use actix_web::web::Bytes;
 use actix_web::{
     dev::{AppService, HttpServiceFactory, ResourceDef, ServiceRequest, ServiceResponse},
     error::Error,
@@ -7,6 +9,7 @@ use actix_web::{
 };
 use derive_more::{Display, Error};
 use futures::future::{ok, FutureExt, LocalBoxFuture, Ready};
+use mime_guess::Mime;
 use std::{
     collections::HashMap,
     ops::Deref,
@@ -17,8 +20,9 @@ use std::{
 /// Static files resource.
 pub struct Resource {
     pub data: &'static [u8],
+    pub data_gzip: Option<Bytes>,
     pub etag: String,
-    pub mime_type: String,
+    pub mime_type: Mime,
 }
 
 /// Static resource files handling
@@ -111,9 +115,8 @@ impl HttpServiceFactory for ResourceFiles {
     }
 }
 
-impl ServiceFactory for ResourceFiles {
+impl ServiceFactory<ServiceRequest> for ResourceFiles {
     type Config = ();
-    type Request = ServiceRequest;
     type Response = ServiceResponse;
     type Error = Error;
     type Service = ResourceFilesService;
@@ -144,31 +147,33 @@ impl Deref for ResourceFilesService {
     }
 }
 
-impl<'a> Service for ResourceFilesService {
-    type Request = ServiceRequest;
+impl<'a> Service<ServiceRequest> for ResourceFilesService {
     type Response = ServiceResponse;
     type Error = Error;
     type Future = Ready<Result<Self::Response, Self::Error>>;
 
-    fn poll_ready(&mut self, _: &mut Context) -> Poll<Result<(), Self::Error>> {
+    fn poll_ready(&self, _: &mut Context) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))
     }
 
-    fn call(&mut self, req: ServiceRequest) -> Self::Future {
+    fn call(&self, req: ServiceRequest) -> Self::Future {
         match *req.method() {
             Method::HEAD | Method::GET => (),
             _ => {
                 return ok(ServiceResponse::new(
                     req.into_parts().0,
                     HttpResponse::MethodNotAllowed()
-                        .header(header::CONTENT_TYPE, "text/plain")
-                        .header(header::ALLOW, "GET, HEAD")
+                        .append_header((header::CONTENT_TYPE, "text/plain"))
+                        .append_header((header::ALLOW, "GET, HEAD"))
                         .body("This resource only supports GET and HEAD."),
                 ));
             }
         }
 
-        let req_path = req.match_info().path();
+        let mut req_path = req.match_info().unprocessed();
+        if req_path.starts_with('/') {
+            req_path = &req_path[1..];
+        }
 
         let mut item = self.files.get(req_path);
 
@@ -209,17 +214,17 @@ impl<'a> Service for ResourceFilesService {
 
 fn respond_to(req: &HttpRequest, item: Option<&Resource>) -> HttpResponse {
     if let Some(file) = item {
-        let etag = Some(header::EntityTag::strong(file.etag.clone()));
+        let etag = Some(header::EntityTag::new_strong(file.etag.clone()));
 
         let precondition_failed = !any_match(etag.as_ref(), req);
 
         let not_modified = !none_match(etag.as_ref(), req);
 
         let mut resp = HttpResponse::build(StatusCode::OK);
-        resp.set_header(header::CONTENT_TYPE, &file.mime_type[0..]);
+        resp.insert_header(header::ContentType(file.mime_type.clone()));
 
         if let Some(etag) = etag {
-            resp.set(header::ETag(etag));
+            resp.insert_header(header::ETag(etag));
         }
 
         if precondition_failed {
@@ -228,7 +233,19 @@ fn respond_to(req: &HttpRequest, item: Option<&Resource>) -> HttpResponse {
             return resp.status(StatusCode::NOT_MODIFIED).finish();
         }
 
-        resp.body(file.data)
+        if file.data_gzip.is_some()
+            && req
+                .headers()
+                .get(ACCEPT_ENCODING)
+                .and_then(|h| h.to_str().ok())
+                .map(|s| s.contains("gzip"))
+                .unwrap_or(false)
+        {
+            resp.insert_header(("content-encoding", "gzip"));
+            resp.body(file.data_gzip.as_ref().unwrap().clone())
+        } else {
+            resp.body(file.data)
+        }
     } else {
         HttpResponse::NotFound().body("Not found")
     }

@@ -1,6 +1,6 @@
 [package]
 name = "actix-plus-static-files"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["David Johnson <john01dav@gmail.com>", "Alexander Korolev <kilork@yandex.ru>"]
 categories = ["network-programming",
     "asynchronous",
@@ -15,11 +15,12 @@ repository = "https://github.com/john01dav/actix-plus"
 readme = "README.md"
 
 [dependencies]
-actix-web = { version = "3.0", default-features = false }
-actix-service = { version = "1.0.6", default-features = false }
+actix-web = { version = "4.0", default-features = false }
+actix-service = { version = "2.0", default-features = false }
 mime_guess = "2.0"
 path-slash = "0.1"
-include_dir = "0.6.0"
-futures = "0.3.13"
-derive_more = "0.99.13"
-md5 = "0.7.0"
+include_dir = "0.6"
+futures = "0.3"
+derive_more = "0.99"
+md5 = "0.7"
+flate2 = "1"
