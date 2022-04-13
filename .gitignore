@@ -1,4 +1,4 @@
 /target
 /.idea
-cert.pem
-key.pem
+actix-plus-auth/examples/cert.pem
+actix-plus-auth/examples/key.pem

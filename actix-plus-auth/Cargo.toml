@@ -11,7 +11,7 @@ repository = "https://github.com/john01dav/actix-plus"
 readme = "README.md"
 
 [dependencies]
-actix-web = "3.3.2"
+actix-web = "4.0.1"
 actix-plus-error = { path = "../actix-plus-error", version = "0.1.0" }
 actix-plus-utils = { path = "../actix-plus-utils", version = "0.1.0" }
 serde = "1.0.124"
@@ -24,5 +24,5 @@ async-trait = "0.1.48"
 
 [dev-dependencies]
 actix-plus-static-files = { path = "../actix-plus-static-files" }
-actix-web = { version = "3.3.2", features = ["openssl"] }
+actix-web = { version = "4.0.1", features = ["openssl"] }
 openssl = { version = "0.10", features = ["v110"] }

@@ -4,7 +4,7 @@ use actix_plus_error::Response;
 use actix_plus_static_files::{build_hashmap_from_included_dir, include_dir, Dir, ResourceFiles};
 use actix_web::cookie::CookieBuilder;
 use actix_web::web::{Data, Json};
-use actix_web::{get, post, App, HttpMessage, HttpRequest, HttpResponse, HttpServer};
+use actix_web::{get, post, App, HttpRequest, HttpResponse, HttpServer};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use serde::{Deserialize, Serialize};
 
@@ -31,7 +31,6 @@ async fn login(auth: Data<ExampleAuthProvider>, dto: Json<LoginDto>) -> Response
                     succeeded: true,
                     message: None,
                 })
-                .await?
         }
         LoginOutcome::InvalidEmailOrPassword => {
             HttpResponse::Ok()
@@ -39,27 +38,26 @@ async fn login(auth: Data<ExampleAuthProvider>, dto: Json<LoginDto>) -> Response
                     succeeded: false,
                     message: Some("Invalid username or password".into()),
                 })
-                .await?
         }
     })
 }
 
 #[post("/logout")]
 async fn logout(request: HttpRequest) -> Response {
-    let mut response = HttpResponse::Ok();
+    let mut response = HttpResponse::Ok().await?;
     if let Some(mut session_cookie) = request.cookie("actix-plus-auth-token") {
         //TODO: no magic strings
         session_cookie.set_path("/");
         session_cookie.set_secure(true);
-        response.del_cookie(&session_cookie);
+        response.add_removal_cookie(&session_cookie)?;
     }
     if let Some(mut username_cookie) = request.cookie("username") {
         //TODO: no magic strings
         username_cookie.set_path("/");
         username_cookie.set_secure(true);
-        response.del_cookie(&username_cookie);
+        response.add_removal_cookie(&username_cookie)?;
     }
-    Ok(response.await?)
+    Ok(response)
 }
 
 #[derive(Deserialize)]
@@ -95,7 +93,6 @@ async fn register(auth: Data<ExampleAuthProvider>, dto: Json<RegistrationDto>) -
                         succeeded: true,
                         message: None,
                     })
-                    .await?
             }
             RegistrationOutcome::InvalidEmail => {
                 HttpResponse::Ok()
@@ -103,7 +100,6 @@ async fn register(auth: Data<ExampleAuthProvider>, dto: Json<RegistrationDto>) -
                         succeeded: false,
                         message: Some("Invalid Email".into()),
                     })
-                    .await?
             }
             RegistrationOutcome::EmailTaken => {
                 HttpResponse::Ok()
@@ -111,7 +107,6 @@ async fn register(auth: Data<ExampleAuthProvider>, dto: Json<RegistrationDto>) -
                         succeeded: false,
                         message: Some("Email is already taken".into()),
                     })
-                    .await?
             }
         },
     )
@@ -121,8 +116,7 @@ async fn register(auth: Data<ExampleAuthProvider>, dto: Json<RegistrationDto>) -
 async fn private_page(request: HttpRequest, auth: Data<ExampleAuthProvider>) -> Response {
     let account = auth.current_user(&request)?;
     Ok(HttpResponse::Ok()
-        .body(format!("Hello {}", account.username))
-        .await?)
+        .body(format!("Hello {}", account.username)))
 }
 
 const FRONTEND: Dir = include_dir!("examples/frontend");
@@ -148,7 +142,7 @@ async fn main() {
 
     HttpServer::new(move || {
         App::new()
-            .data(auth.clone())
+            .app_data(Data::new(auth.clone()))
             .service(login)
             .service(logout)
             .service(register)

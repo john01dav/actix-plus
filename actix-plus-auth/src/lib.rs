@@ -187,7 +187,7 @@ use actix_plus_error::{ResponseError, ResponseResult};
 use actix_plus_utils::current_unix_time_secs;
 use actix_web::cookie::{Cookie, CookieBuilder, SameSite};
 use actix_web::http::StatusCode;
-use actix_web::{HttpMessage, HttpRequest};
+use actix_web::HttpRequest;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 pub use async_trait::async_trait;
