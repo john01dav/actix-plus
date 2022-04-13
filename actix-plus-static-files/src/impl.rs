@@ -1,6 +1,6 @@
 use actix_service::{Service, ServiceFactory};
 use actix_web::{
-    dev::{AppService, HttpServiceFactory, ResourceDef, ServiceRequest, ServiceResponse},
+    dev::{AppService, HttpServiceFactory, ResourceDef, ServiceResponse},
     error::Error,
     http::{header, Method, StatusCode},
     HttpMessage, HttpRequest, HttpResponse, ResponseError,
@@ -13,6 +13,7 @@ use std::{
     rc::Rc,
     task::{Context, Poll},
 };
+use actix_web::dev::ServiceRequest;
 
 /// Static files resource.
 pub struct Resource {
@@ -102,20 +103,20 @@ impl Deref for ResourceFiles {
 
 impl HttpServiceFactory for ResourceFiles {
     fn register(self, config: &mut AppService) {
+        let prefix = self.path.trim_start_matches("/");
         let rdef = if config.is_root() {
-            ResourceDef::root_prefix(&self.path)
+            ResourceDef::root_prefix(prefix)
         } else {
-            ResourceDef::prefix(&self.path)
+            ResourceDef::prefix(prefix)
         };
         config.register_service(rdef, None, self, None)
     }
 }
 
-impl ServiceFactory for ResourceFiles {
-    type Config = ();
-    type Request = ServiceRequest;
+impl ServiceFactory<ServiceRequest> for ResourceFiles {
     type Response = ServiceResponse;
     type Error = Error;
+    type Config = ();
     type Service = ResourceFilesService;
     type InitError = ();
     type Future = LocalBoxFuture<'static, Result<Self::Service, Self::InitError>>;
@@ -144,31 +145,30 @@ impl Deref for ResourceFilesService {
     }
 }
 
-impl<'a> Service for ResourceFilesService {
-    type Request = ServiceRequest;
+impl<'a> Service<ServiceRequest> for ResourceFilesService {
     type Response = ServiceResponse;
     type Error = Error;
     type Future = Ready<Result<Self::Response, Self::Error>>;
 
-    fn poll_ready(&mut self, _: &mut Context) -> Poll<Result<(), Self::Error>> {
+    fn poll_ready(&self, _: &mut Context) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))
     }
 
-    fn call(&mut self, req: ServiceRequest) -> Self::Future {
+    fn call(&self, req: ServiceRequest) -> Self::Future {
         match *req.method() {
             Method::HEAD | Method::GET => (),
             _ => {
                 return ok(ServiceResponse::new(
                     req.into_parts().0,
                     HttpResponse::MethodNotAllowed()
-                        .header(header::CONTENT_TYPE, "text/plain")
-                        .header(header::ALLOW, "GET, HEAD")
+                        .append_header((header::CONTENT_TYPE, "text/plain"))
+                        .append_header((header::ALLOW, "GET, HEAD"))
                         .body("This resource only supports GET and HEAD."),
                 ));
             }
         }
 
-        let req_path = req.match_info().path();
+        let req_path = req.match_info().as_str();
 
         let mut item = self.files.get(req_path);
 
@@ -177,7 +177,8 @@ impl<'a> Service for ResourceFilesService {
             && (req_path.is_empty() || req_path.ends_with("/"))
         {
             let index_req_path = req_path.to_string() + INDEX_HTML;
-            item = self.files.get(index_req_path.as_str());
+            let index_req_path = index_req_path.trim_start_matches("/");
+            item = self.files.get(index_req_path);
         }
 
         let (req, response) = if item.is_some() {
@@ -209,17 +210,17 @@ impl<'a> Service for ResourceFilesService {
 
 fn respond_to(req: &HttpRequest, item: Option<&Resource>) -> HttpResponse {
     if let Some(file) = item {
-        let etag = Some(header::EntityTag::strong(file.etag.clone()));
+        let etag = Some(header::EntityTag::new_strong(file.etag.clone()));
 
         let precondition_failed = !any_match(etag.as_ref(), req);
 
         let not_modified = !none_match(etag.as_ref(), req);
 
         let mut resp = HttpResponse::build(StatusCode::OK);
-        resp.set_header(header::CONTENT_TYPE, &file.mime_type[0..]);
+        resp.append_header((header::CONTENT_TYPE, &file.mime_type[0..]));
 
         if let Some(etag) = etag {
-            resp.set(header::ETag(etag));
+            resp.append_header((header::ETAG, etag));
         }
 
         if precondition_failed {
