@@ -11,4 +11,4 @@ repository = "https://github.com/john01dav/actix-plus"
 readme = "README.md"
 
 [dependencies]
-actix-web = "3.3.2"
+actix-web = "4.0.1"

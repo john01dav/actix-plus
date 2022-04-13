@@ -183,7 +183,7 @@ dependencies = [
 name = "actix-plus-error"
 version = "0.1.0"
 dependencies = [
- "actix-web 3.3.2",
+ "actix-web 4.0.1",
 ]
 
 [[package]]

@@ -25,9 +25,8 @@
 //! }
 //! ```
 //! It is also possible to use the `Any` trait to downcast errors wrapped in the InternalServerError variant.
-use actix_web::dev::HttpResponseBuilder;
 use actix_web::http::StatusCode;
-use actix_web::HttpResponse;
+use actix_web::{HttpResponse, HttpResponseBuilder};
 use std::any::Any;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
@@ -81,7 +80,7 @@ impl actix_web::ResponseError for ResponseError {
                 HttpResponse::InternalServerError().body("Internal Server Error")
             }
             ResponseError::StatusCodeError { code, message } => {
-                HttpResponseBuilder::new(*code).body(message)
+                HttpResponseBuilder::new(*code).body(message.clone())
             }
         }
     }
