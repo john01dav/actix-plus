@@ -69,7 +69,7 @@ dependencies = [
 
 [[package]]
 name = "actix-plus-auth"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "actix-plus-error",
  "actix-plus-static-files",
@@ -87,7 +87,7 @@ dependencies = [
 
 [[package]]
 name = "actix-plus-error"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "actix-web",
 ]
@@ -108,7 +108,7 @@ dependencies = [
 
 [[package]]
 name = "actix-plus-utils"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "actix-plus-error",
  "actix-web",

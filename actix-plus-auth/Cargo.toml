@@ -1,6 +1,6 @@
 [package]
 name = "actix-plus-auth"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["john01dav <john01dav@gmail.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
@@ -12,8 +12,8 @@ readme = "README.md"
 
 [dependencies]
 actix-web = "4.0.1"
-actix-plus-error = { path = "../actix-plus-error", version = "0.1.0" }
-actix-plus-utils = { path = "../actix-plus-utils", version = "0.1.0" }
+actix-plus-error = { path = "../actix-plus-error", version = "0.2.0" }
+actix-plus-utils = { path = "../actix-plus-utils", version = "0.2.0" }
 serde = "1.0.124"
 argon2 = {version = "0.1.4", features = ["std"]}
 rand = "0.8.3"
