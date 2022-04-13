@@ -12,6 +12,6 @@ readme = "README.md"
 
 [dependencies]
 actix-plus-error = { path = "../actix-plus-error", version = "0.1.0" }
-actix-web = "3.3.2"
+actix-web = "4.0.1"
 unic-ucd-category = "0.9.0"
 rand = "0.7.3"

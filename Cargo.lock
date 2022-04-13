@@ -205,7 +205,7 @@ name = "actix-plus-utils"
 version = "0.1.0"
 dependencies = [
  "actix-plus-error",
- "actix-web 3.3.2",
+ "actix-web 4.0.1",
  "rand 0.7.3",
  "unic-ucd-category",
 ]
